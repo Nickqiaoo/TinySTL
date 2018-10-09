@@ -1,14 +1,18 @@
 #ifndef ITERATOR_H__
 #define ITERATOR_H__
 
+#include <cstddef>
+
 namespace TinySTL {
 
+//五种迭代器类型
 struct input_iterator_tag {};
 struct output_iterator_tag {};
 struct forward_iterator_tag : public input_iterator_tag {};
 struct bidirectional_iterator_tag : public forward_iterator_tag {};
 struct random_iterator_tag : public bidirectional_iterator_tag {};
 
+//自己写的迭代器可以继承这个标准
 template <class Category, class T, class Distance = ptrdiff_t,
           class Pointer = T*, class Reference = T&>
 struct iterator {
@@ -19,6 +23,7 @@ struct iterator {
     typedef Reference reference;
 };
 
+//
 template <class Iterator>
 struct iterator_traits {
     typedef typename Iterator::Iterator_category iterator_category;
