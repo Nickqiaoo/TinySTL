@@ -21,8 +21,8 @@ inline void destroy(T* pointer) {
 }
 
 //把半开半闭区间[first, last)内的所有元素析构掉
-//如果该元素的析构函数是trivial的，则什么也不做   trivial表示可以不调用析构函数
-//如果该元素的析构函数是non-trivial的，则依序调用其析构函数
+//如果该元素的析构函数是trivial的，则什么也不做   trivial表示构造，析构，拷贝函数均为默认
+//如果该元素的析构函数是non-trivial的，则依序调用其析构函数  non-trivial表示上述函数均有定义
 template <class ForwardIterator>
 inline void destroy(ForwardIterator first, ForwardIterator last) {
   __destroy(first, last, value_type(first));
