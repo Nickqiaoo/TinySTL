@@ -15,7 +15,7 @@ inline ForwardIterator uninitialized_fill_n(ForwardIterator first, Size n,
 template <class ForwardIterator, class Size, class T, class T1>
 inline ForwardIterator __uninitialized_fill_n(ForwardIterator first, Size n,
                                               const T& x, T1*) {
-    typedef typename __type_traits<T1>::is_POD_type is_POD;
+    typedef typename _type_traits<T1>::is_POD_type is_POD;
     return __uninitialized_fill_n_aux(first, n, x, is_POD());
 }
 
@@ -36,19 +36,11 @@ ForwardIterator __uninitialized_fill_n_aux(ForwardIterator first, Size n,
     return cur;
 }
 
-//将区间[first, last)中的元素拷贝到以result起始的区间中
-template <class InputIterator, class ForwardIterator>
-inline ForwardIterator uninitialized_copy(InputIterator first,
-                                          InputIterator last,
-                                          ForwardIterator result) {
-    return __uninitialized_copy(first, last, result, value_type(result));
-}
-
 template <class InputIterator, class ForwardIterator, class T>
 inline ForwardIterator __uninitialized_copy(InputIterator first,
                                             InputIterator last,
                                             ForwardIterator result, T*) {
-    typedef typename __type_traits<T>::is_POD_type is_POD;
+    typedef typename _type_traits<T>::is_POD_type is_POD;
     return __uninitialized_copy_aux(first, last, result, is_POD());
 }
 
@@ -59,7 +51,7 @@ inline ForwardIterator __uninitialized_copy_aux(InputIterator first,
                                                 ForwardIterator result,
                                                 _true_type) {
     //对于POD对象
-    return copy(first, last, result);
+    return std::copy(first, last, result);
 }
 
 template <class InputIterator, class ForwardIterator>
@@ -71,6 +63,14 @@ ForwardIterator __uninitialized_copy_aux(InputIterator first,
     for (; first != last; ++first, ++cur)
         construct(&*cur, *first);  // placement new
     return cur;
+}
+
+//将区间[first, last)中的元素拷贝到以result起始的区间中
+template <class InputIterator, class ForwardIterator>
+inline ForwardIterator uninitialized_copy(InputIterator first,
+                                          InputIterator last,
+                                          ForwardIterator result) {
+    return __uninitialized_copy(first, last, result, value_type(result));
 }
 
 //对于char*和wchar_t*的特化版本，使用效率更高的memmove

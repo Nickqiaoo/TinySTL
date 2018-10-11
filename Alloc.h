@@ -11,7 +11,7 @@ template <class T, class Alloc>
 class simple_alloc {
    public:
     static T* allocate(size_t n) {
-        return n == 0 ? 0;
+        return n == 0 ? 0:
         (T*)Alloc::allocate(n * sizeof(T));
     }
     static T* allocate(void) { return (T*)Alloc::allocate(sizeof(T)); }
