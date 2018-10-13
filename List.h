@@ -69,16 +69,13 @@ class list {
    public:
     typedef T value_type;
     typedef value_type* pointer;
-    typedef const value_type* const_pointer;
     typedef value_type& reference;
-    typedef const value_type& const_reference;
     typedef list_node* link_type;
     typedef size_t size_type;
     typedef ptrdiff_t difference_type;
 
    public:
     typedef __list_iterator<T, T&, T*> iterator;
-    typedef __list_iterator<T, const T&, const T*> const_iterator;
 
    protected:
     link_type get_node() {
