@@ -1,13 +1,14 @@
 CC = gcc
 CFLAGS = -std=c++11
 LDFLAGS = -lgtest -lgtest_main -lpthread -lstdc++
-objs = ListTest VectorTest
+SOURCE = $(wildcard *.cc)
+OBJS = $(patsubst %.cc,%,$(SOURCE))
+#OBJS = ListTest VectorTest
 
 %.o : %.cc
 	$(CC) $(CFLAGS) -c $^ -o $@
-$(objs) : % : %.o ../Alloc.o
+$(OBJS) : % : %.o ../Alloc.o
 	$(CC) $(CFLAGS) -o $@ $^ $(LDFLAGS)
-all : $(objs)  
+all : $(OBJS)  
 clean :
-	rm ../Alloc.o *.o *Test
-	
+	rm ../Alloc.o *.o $(OBJS)
