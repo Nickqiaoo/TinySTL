@@ -425,9 +425,9 @@ void deque<T, Alloc, BufSize>::create_map_and_nodes(size_type num_elements) {
 
 template <class T, class Alloc, size_t BufSize>
 void deque<T, Alloc, BufSize>::push_back_aux(const value_type& t) {
-  value_type t_copy = t;
-  reserve_map_at_back();
-  *(finish.node + 1) = allocate_node();
+    value_type t_copy = t;
+    reserve_map_at_back();
+    *(finish.node + 1) = allocate_node();
     construct(finish.cur, t_copy);
     finish.set_node(finish.node + 1);
     finish.cur = finish.first;
@@ -436,14 +436,226 @@ void deque<T, Alloc, BufSize>::push_back_aux(const value_type& t) {
 // Called only if start.cur == start.first.
 template <class T, class Alloc, size_t BufSize>
 void deque<T, Alloc, BufSize>::push_front_aux(const value_type& t) {
-  value_type t_copy = t;
-  reserve_map_at_front();
-  *(start.node - 1) = allocate_node();
+    value_type t_copy = t;
+    reserve_map_at_front();
+    *(start.node - 1) = allocate_node();
     start.set_node(start.node - 1);
     start.cur = start.last - 1;
     construct(start.cur, t_copy);
+}
 
-} 
+// Called only if finish.cur == finish.first.
+template <class T, class Alloc, size_t BufSize>
+void deque<T, Alloc, BufSize>::pop_back_aux() {
+    deallocate_node(finish.first);
+    finish.set_node(finish.node - 1);
+    finish.cur = finish.last - 1;
+    destroy(finish.cur);
+}
+
+// Called only if start.cur == start.last - 1.  Note that if the deque
+//  has at least one element (a necessary precondition for this member
+//  function), and if start.cur == start.last, then the deque must have
+//  at least two nodes.
+template <class T, class Alloc, size_t BufSize>
+void deque<T, Alloc, BufSize>::pop_front_aux() {
+    destroy(start.cur);
+    deallocate_node(start.first);
+    start.set_node(start.node + 1);
+    start.cur = start.first;
+}
+template <class T, class Alloc, size_t BufSize>
+void deque<T, Alloc, BufSize>::reallocate_map(size_type nodes_to_add,
+                                              bool add_at_front) {
+    size_type old_num_nodes = finish.node - start.node + 1;
+    size_type new_num_nodes = old_num_nodes + nodes_to_add;
+
+    map_pointer new_nstart;
+    if (map_size > 2 * new_num_nodes) {
+        new_nstart = map + (map_size - new_num_nodes) / 2 +
+                     (add_at_front ? nodes_to_add : 0);
+        if (new_nstart < start.node)
+            copy(start.node, finish.node + 1, new_nstart);
+        else
+            copy_backward(start.node, finish.node + 1,
+                          new_nstart + old_num_nodes);
+    } else {
+        size_type new_map_size = map_size + max(map_size, nodes_to_add) + 2;
+
+        map_pointer new_map = map_allocator::allocate(new_map_size);
+        new_nstart = new_map + (new_map_size - new_num_nodes) / 2 +
+                     (add_at_front ? nodes_to_add : 0);
+        copy(start.node, finish.node + 1, new_nstart);
+        map_allocator::deallocate(map, map_size);
+
+        map = new_map;
+        map_size = new_map_size;
+    }
+
+    start.set_node(new_nstart);
+    finish.set_node(new_nstart + old_num_nodes - 1);
+}
+
+template <class T, class Alloc, size_t BufSize>
+void deque<T, Alloc, BufSize>::clear() {
+    for (map_pointer node = start.node + 1; node < finish.node; ++node) {
+        destroy(*node, *node + buffer_size());
+        data_allocator::deallocate(*node, buffer_size());
+    }
+
+    if (start.node != finish.node) {
+        destroy(start.cur, start.last);
+        destroy(finish.first, finish.cur);
+        data_allocator::deallocate(finish.first, buffer_size());
+    } else
+        destroy(start.cur, finish.cur);
+
+    finish = start;
+}
+
+template <class T, class Alloc, size_t BufSize>
+deque<T, Alloc, BufSize>::iterator deque<T, Alloc, BufSize>::erase(
+    iterator first, iterator last) {
+    if (first == start && last == finish) {
+        clear();
+        return finish;
+    } else {
+        difference_type n = last - first;
+        difference_type elems_before = first - start;
+        if (elems_before < (size() - n) / 2) {
+            copy_backward(start, first, last);
+            iterator new_start = start + n;
+            destroy(start, new_start);
+            for (map_pointer cur = start.node; cur < new_start.node; ++cur)
+                data_allocator::deallocate(*cur, buffer_size());
+            start = new_start;
+        } else {
+            copy(last, finish, first);
+            iterator new_finish = finish - n;
+            destroy(new_finish, finish);
+            for (map_pointer cur = new_finish.node + 1; cur <= finish.node;
+                 ++cur)
+                data_allocator::deallocate(*cur, buffer_size());
+            finish = new_finish;
+        }
+        return start + elems_before;
+    }
+}
+
+template <class T, class Alloc, size_t BufSize>
+typename deque<T, Alloc, BufSize>::iterator
+deque<T, Alloc, BufSize>::insert_aux(iterator pos, const value_type& x) {
+    difference_type index = pos - start;
+    value_type x_copy = x;
+    if (index < size() / 2) {
+        push_front(front());
+        iterator front1 = start;
+        ++front1;
+        iterator front2 = front1;
+        ++front2;
+        pos = start + index;
+        iterator pos1 = pos;
+        ++pos1;
+        copy(front2, pos1, front1);
+    } else {
+        push_back(back());
+        iterator back1 = finish;
+        --back1;
+        iterator back2 = back1;
+        --back2;
+        pos = start + index;
+        copy_backward(pos, back2, back1);
+    }
+    *pos = x_copy;
+    return pos;
+}
+
+template <class T, class Alloc, size_t BufSize>
+void deque<T, Alloc, BufSize>::insert_aux(iterator pos, size_type n,
+                                          const value_type& x) {
+    const difference_type elems_before = pos - start;
+    size_type length = size();
+    value_type x_copy = x;
+    if (elems_before < length / 2) {
+        iterator new_start = reserve_elements_at_front(n);
+        iterator old_start = start;
+        pos = start + elems_before;
+        if (elems_before >= difference_type(n)) {
+            iterator start_n = start + difference_type(n);
+            uninitialized_copy(start, start_n, new_start);
+            start = new_start;
+            copy(start_n, pos, old_start);
+            fill(pos - difference_type(n), pos, x_copy);
+        } else {
+            __uninitialized_copy_fill(start, pos, new_start, start, x_copy);
+            start = new_start;
+            fill(old_start, pos, x_copy);
+        }
+    } else {
+        iterator new_finish = reserve_elements_at_back(n);
+        iterator old_finish = finish;
+        const difference_type elems_after =
+            difference_type(length) - elems_before;
+        pos = finish - elems_after;
+        if (elems_after > difference_type(n)) {
+            iterator finish_n = finish - difference_type(n);
+            uninitialized_copy(finish_n, finish, finish);
+            finish = new_finish;
+            copy_backward(pos, finish_n, old_finish);
+            fill(pos, pos + difference_type(n), x_copy);
+        } else {
+            __uninitialized_fill_copy(finish, pos + difference_type(n), x_copy,
+                                      pos, finish);
+            finish = new_finish;
+            fill(pos, old_finish, x_copy);
+        }
+    }
+}
+
+template <class T, class Alloc, size_t BufSize>
+template <class ForwardIterator>
+void deque<T, Alloc, BufSize>::insert_aux(iterator pos, ForwardIterator first,
+                                          ForwardIterator last, size_type n) {
+    const difference_type elems_before = pos - start;
+    size_type length = size();
+    if (elems_before < length / 2) {
+        iterator new_start = reserve_elements_at_front(n);
+        iterator old_start = start;
+        pos = start + elems_before;
+        if (elems_before >= difference_type(n)) {
+            iterator start_n = start + difference_type(n);
+            uninitialized_copy(start, start_n, new_start);
+            start = new_start;
+            copy(start_n, pos, old_start);
+            copy(first, last, pos - difference_type(n));
+        } else {
+            ForwardIterator mid = first;
+            advance(mid, difference_type(n) - elems_before);
+            __uninitialized_copy_copy(start, pos, first, mid, new_start);
+            start = new_start;
+            copy(mid, last, old_start);
+        }
+    } else {
+        iterator new_finish = reserve_elements_at_back(n);
+        iterator old_finish = finish;
+        const difference_type elems_after =
+            difference_type(length) - elems_before;
+        pos = finish - elems_after;
+        if (elems_after > difference_type(n)) {
+            iterator finish_n = finish - difference_type(n);
+            uninitialized_copy(finish_n, finish, finish);
+            finish = new_finish;
+            copy_backward(pos, finish_n, old_finish);
+            copy(first, last, pos);
+        } else {
+            ForwardIterator mid = first;
+            advance(mid, elems_after);
+            __uninitialized_copy_copy(mid, last, pos, finish, finish);
+            finish = new_finish;
+            copy(first, mid, pos);
+        }
+    }
+}
 
 }  // namespace TinySTL
 
