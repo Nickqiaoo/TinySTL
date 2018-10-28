@@ -1,9 +1,9 @@
 #ifndef RB_TREE_H__
 #define RB_TREE_H__
 
+#include <algorithm>
 #include "Alloc.h"
 #include "Construct.h"
-#include <algorithm>
 
 namespace TinySTL {
 
@@ -125,7 +125,6 @@ inline bool operator!=(const __rb_tree_base_iterator& x,
                        const __rb_tree_base_iterator& y) {
     return x.node != y.node;
 }
-
 
 inline void __rb_tree_rotate_left(__rb_tree_node_base* x,
                                   __rb_tree_node_base*& root) {
@@ -533,7 +532,6 @@ inline bool operator<(
     return lexicographical_compare(x.begin(), x.end(), y.begin(), y.end());
 }
 
-
 template <class Key, class Value, class KeyOfValue, class Compare, class Alloc>
 rb_tree<Key, Value, KeyOfValue, Compare, Alloc>&
 rb_tree<Key, Value, KeyOfValue, Compare, Alloc>::operator=(
@@ -601,60 +599,57 @@ rb_tree<Key, Value, KeyOfValue, Compare, Alloc>::insert_equal(const Value& v) {
 }
 
 template <class Key, class Value, class KeyOfValue, class Compare, class Alloc>
-std::pair<typename rb_tree<Key, Value, KeyOfValue, Compare, Alloc>::iterator, bool>
-rb_tree<Key, Value, KeyOfValue, Compare, Alloc>::insert_unique(const Value& v)
-{
-  link_type y = header;
-  link_type x = root();
-  bool comp = true;
-  while (x != 0) {
-    y = x;
-    comp = key_compare(KeyOfValue()(v), key(x));
-    x = comp ? left(x) : right(x);
-  }
-  iterator j = iterator(y);   
-  if (comp)
-    if (j == begin())     
-      return pair<iterator,bool>(__insert(x, y, v), true);
-    else
-      --j;
-  if (key_compare(key(j.node), KeyOfValue()(v)))
-    return pair<iterator,bool>(__insert(x, y, v), true);
-  return pair<iterator,bool>(j, false);
+std::pair<typename rb_tree<Key, Value, KeyOfValue, Compare, Alloc>::iterator,
+          bool>
+rb_tree<Key, Value, KeyOfValue, Compare, Alloc>::insert_unique(const Value& v) {
+    link_type y = header;
+    link_type x = root();
+    bool comp = true;
+    while (x != 0) {
+        y = x;
+        comp = key_compare(KeyOfValue()(v), key(x));  // v是否比当前节点小
+        x = comp ? left(x) : right(x)
+    }
+    iterator j = iterator(y); //j指向父节点
+    if (comp)  //比父节点小
+        if (j == begin())   //如果父节点是最左端
+            return pair<iterator, bool>(__insert(x, y, v), true);
+        else
+            --j;  
+    if (key_compare(key(j.node), KeyOfValue()(v)))
+        return pair<iterator, bool>(__insert(x, y, v), true);
+    return pair<iterator, bool>(j, false);
 }
-
 
 template <class Key, class Val, class KeyOfValue, class Compare, class Alloc>
-typename rb_tree<Key, Val, KeyOfValue, Compare, Alloc>::iterator 
+typename rb_tree<Key, Val, KeyOfValue, Compare, Alloc>::iterator
 rb_tree<Key, Val, KeyOfValue, Compare, Alloc>::insert_unique(iterator position,
                                                              const Val& v) {
-  if (position.node == header->left) // begin()
-    if (size() > 0 && key_compare(KeyOfValue()(v), key(position.node)))
-      return __insert(position.node, position.node, v);
-  // first argument just needs to be non-null 
-    else
-      return insert_unique(v).first;
-  else if (position.node == header) // end()
-    if (key_compare(key(rightmost()), KeyOfValue()(v)))
-      return __insert(0, rightmost(), v);
-    else
-      return insert_unique(v).first;
-  else {
-    iterator before = position;
-    --before;
-    if (key_compare(key(before.node), KeyOfValue()(v))
-        && key_compare(KeyOfValue()(v), key(position.node)))
-      if (right(before.node) == 0)
-        return __insert(0, before.node, v); 
-      else
-        return __insert(position.node, position.node, v);
-    // first argument just needs to be non-null 
-    else
-      return insert_unique(v).first;
-  }
+    if (position.node == header->left)  // begin()
+        if (size() > 0 && key_compare(KeyOfValue()(v), key(position.node)))
+            return __insert(position.node, position.node, v);
+        // first argument just needs to be non-null
+        else
+            return insert_unique(v).first;
+    else if (position.node == header)  // end()
+        if (key_compare(key(rightmost()), KeyOfValue()(v)))
+            return __insert(0, rightmost(), v);
+        else
+            return insert_unique(v).first;
+    else {
+        iterator before = position;
+        --before;
+        if (key_compare(key(before.node), KeyOfValue()(v)) &&
+            key_compare(KeyOfValue()(v), key(position.node)))
+            if (right(before.node) == 0)
+                return __insert(0, before.node, v);
+            else
+                return __insert(position.node, position.node, v);
+        // first argument just needs to be non-null
+        else
+            return insert_unique(v).first;
+    }
 }
-
-
 
 template <class Key, class Val, class KeyOfValue, class Compare, class Alloc>
 typename rb_tree<Key, Val, KeyOfValue, Compare, Alloc>::iterator
@@ -686,7 +681,6 @@ rb_tree<Key, Val, KeyOfValue, Compare, Alloc>::insert_equal(iterator position,
     }
 }
 
-
 template <class K, class V, class KoV, class Cmp, class Al>
 template <class II>
 void rb_tree<K, V, KoV, Cmp, Al>::insert_equal(II first, II last) {
@@ -698,7 +692,6 @@ template <class II>
 void rb_tree<K, V, KoV, Cmp, Al>::insert_unique(II first, II last) {
     for (; first != last; ++first) insert_unique(*first);
 }
-
 
 template <class Key, class Value, class KeyOfValue, class Compare, class Alloc>
 inline void rb_tree<Key, Value, KeyOfValue, Compare, Alloc>::erase(
@@ -873,7 +866,6 @@ rb_tree<Key, Value, KeyOfValue, Compare, Alloc>::upper_bound(
 
     return const_iterator(y);
 }
-
 
 inline int __black_count(__rb_tree_node_base* node, __rb_tree_node_base* root) {
     if (node == 0)
