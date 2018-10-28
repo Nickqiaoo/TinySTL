@@ -164,15 +164,18 @@ inline void __rb_tree_rebalance(__rb_tree_node_base* x,
                                 __rb_tree_node_base*& root) {
     x->color = __rb_tree_red;
     while (x != root && x->parent->color == __rb_tree_red) {
-        if (x->parent == x->parent->parent->left) {
+        if (x->parent ==
+            x->parent->parent
+                ->left) {  //如果父节点是祖父节点的左子节点  需要右旋
             __rb_tree_node_base* y = x->parent->parent->right;
-            if (y && y->color == __rb_tree_red) {
+            if (y && y->color == __rb_tree_red) {  //如果伯父节点是红  向上调整
+                                                   //两个子节点涂黑自己涂红
                 x->parent->color = __rb_tree_black;
                 y->color = __rb_tree_black;
                 x->parent->parent->color = __rb_tree_red;
                 x = x->parent->parent;
-            } else {
-                if (x == x->parent->right) {
+            } else {                          //如果伯父节点是黑
+                if (x == x->parent->right) {  //如果是父节点的右子节点 先左旋
                     x = x->parent;
                     __rb_tree_rotate_left(x, root);
                 }
@@ -180,7 +183,7 @@ inline void __rb_tree_rebalance(__rb_tree_node_base* x,
                 x->parent->parent->color = __rb_tree_red;
                 __rb_tree_rotate_right(x->parent->parent, root);
             }
-        } else {
+        } else {  //如果父节点是祖父节点的右子节点  需要左旋
             __rb_tree_node_base* y = x->parent->parent->left;
             if (y && y->color == __rb_tree_red) {
                 x->parent->color = __rb_tree_black;
@@ -346,8 +349,7 @@ class rb_tree {
 
     link_type create_node(const value_type& x) {
         link_type tmp = get_node();
-        __STL_TRY { construct(&tmp->value_field, x); }
-        __STL_UNWIND(put_node(tmp));
+        construct(&tmp->value_field, x);
         return tmp;
     }
 
@@ -510,8 +512,8 @@ class rb_tree {
     const_iterator lower_bound(const key_type& x) const;
     iterator upper_bound(const key_type& x);
     const_iterator upper_bound(const key_type& x) const;
-    pair<iterator, iterator> equal_range(const key_type& x);
-    pair<const_iterator, const_iterator> equal_range(const key_type& x) const;
+    std::pair<iterator, iterator> equal_range(const key_type& x);
+    std::pair<const_iterator, const_iterator> equal_range(const key_type& x) const;
 
    public:
     // Debugging.
@@ -610,12 +612,12 @@ rb_tree<Key, Value, KeyOfValue, Compare, Alloc>::insert_unique(const Value& v) {
         comp = key_compare(KeyOfValue()(v), key(x));  // v是否比当前节点小
         x = comp ? left(x) : right(x)
     }
-    iterator j = iterator(y); //j指向父节点
-    if (comp)  //比父节点小
-        if (j == begin())   //如果父节点是最左端
+    iterator j = iterator(y);  // j指向父节点
+    if (comp)                  //比父节点小
+        if (j == begin())      //如果父节点是最左端
             return pair<iterator, bool>(__insert(x, y, v), true);
         else
-            --j;  
+            --j;
     if (key_compare(key(j.node), KeyOfValue()(v)))
         return pair<iterator, bool>(__insert(x, y, v), true);
     return pair<iterator, bool>(j, false);
@@ -865,6 +867,20 @@ rb_tree<Key, Value, KeyOfValue, Compare, Alloc>::upper_bound(
             x = right(x);
 
     return const_iterator(y);
+}
+
+template <class Key, class Value, class KeyOfValue, class Compare, class Alloc>
+inline std::pair<typename rb_tree<Key, Value, KeyOfValue, Compare, Alloc>::iterator,
+            typename rb_tree<Key, Value, KeyOfValue, Compare, Alloc>::iterator>
+rb_tree<Key, Value, KeyOfValue, Compare, Alloc>::equal_range(const Key& k) {
+    return pair<iterator, iterator>(lower_bound(k), upper_bound(k));
+}
+
+template <class Key, class Value, class KoV, class Compare, class Alloc>
+inline std::pair<typename rb_tree<Key, Value, KoV, Compare, Alloc>::const_iterator,
+            typename rb_tree<Key, Value, KoV, Compare, Alloc>::const_iterator>
+rb_tree<Key, Value, KoV, Compare, Alloc>::equal_range(const Key& k) const {
+    return pair<const_iterator, const_iterator>(lower_bound(k), upper_bound(k));
 }
 
 inline int __black_count(__rb_tree_node_base* node, __rb_tree_node_base* root) {
