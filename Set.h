@@ -78,19 +78,11 @@ class set {
         typedef typename rep_type::iterator rep_iterator;
         return t.insert_unique((rep_iterator&)position, x);
     }
-#ifdef __STL_MEMBER_TEMPLATES
     template <class InputIterator>
     void insert(InputIterator first, InputIterator last) {
         t.insert_unique(first, last);
     }
-#else
-    void insert(const_iterator first, const_iterator last) {
-        t.insert_unique(first, last);
-    }
-    void insert(const value_type* first, const value_type* last) {
-        t.insert_unique(first, last);
-    }
-#endif /* __STL_MEMBER_TEMPLATES */
+
     void erase(iterator position) {
         typedef typename rep_type::iterator rep_iterator;
         t.erase((rep_iterator&)position);
